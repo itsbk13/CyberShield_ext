@@ -79,4 +79,4 @@ v2.0_ext/
 ## License
 - This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 - You may use and modify it for personal, non-commercial purposes, but any distribution (including as a service) requires the source code to be made available under the same license.
-- Commercial use or sale is prohibited without explicit permission from the [Authors](mailto:barathsrini13@gmail.com)
+- Commercial use or sale is prohibited without explicit permission from the [Authors](mailto:barathsrini13@gmail.com,231801020@rajalakshmi.edu.in)
