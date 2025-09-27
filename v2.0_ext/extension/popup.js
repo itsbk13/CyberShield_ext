@@ -1,24 +1,32 @@
 // Mistral AI API Key (replace with your actual key)
-const MISTRAL_API_KEY = "fu7Iba5duoUzdBDT5MBXn8bhvuVkxbqc";
+const MISTRAL_API_KEY = (async () => {
+  try {
+    const response = await fetch("http://127.0.0.1:8000/cb/analyze/api/get-mistral-key/");
+    if (!response.ok) throw new Error("Failed to fetch API key");
+    return await response.text();
+  } catch (err) {
+    console.error("Error fetching Mistral API Key:", err);
+    addMessage("Oops! Can’t connect to the AI server right now. Try again later.", "bot");
+    return null; // Graceful failure
+  }
+})();
 
 // Language mapping for Google Translate
 const LANGUAGE_MAP = {
   "English": "en",
+  "தமிழ் (Tamil)": "ta",
+  "తెలుగు (Telugu)": "te", 
+  "മലയാളം (Malayalam)": "ml",
+  "ಕನ್ನಡ (Kannada)": "kn",
+  "हिन्दी (Hindi)": "hi", 
+  "Deutsch": "de", 
   "Español": "es",
-  "Français": "fr",
-  "Deutsch": "de",
-  "Italiano": "it",
   "Português": "pt",
   "日本語 (Japanese)": "ja",
   "中文 (Chinese)": "zh",
   "Русский (Russian)": "ru",
   "العربية (Arabic)": "ar",
-  "हिन्दी (Hindi)": "hi",
   "한국어 (Korean)": "ko",
-  "Türkçe": "tr",
-  "Nederlands": "nl",
-  "Svenska": "sv",
-  "Polski": "pl",
   "ไทย (Thai)": "th"
 };
 
@@ -59,12 +67,13 @@ async function translateText(text, sourceLang, targetLang) {
 
 // Utility function to call Mistral AI
 async function chatWithMistral(messages) {
+  if (!await MISTRAL_API_KEY) return "AI service unavailable.";
   try {
     const requestBody = { model: "mistral-medium", messages, max_tokens: 150 };
     console.log("Mistral API Request Payload:", JSON.stringify(requestBody, null, 2));
     const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${MISTRAL_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${await MISTRAL_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify(requestBody)
     });
     const responseText = await response.text();
@@ -154,7 +163,9 @@ async function addMessage(text, type) {
     message.textContent = text;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
-  avatar.innerHTML = type === "bot" ? '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+  // Use the shield icon from popup.html for bot avatar
+  avatar.innerHTML = type === "bot" ? '<svg class="shield-icon" viewBox="0 0 24 24"><path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10.5V11.5C15.4,11.5 16,12.4 16,13V16C16,16.6 15.6,17 15,17H9C8.4,17 8,16.6 8,16V13C8,12.4 8.4,11.5 9,11.5V10.5C9,8.6 10.6,7 12,7M12,8.2C11.2,8.2 10.2,8.7 10.2,10.5V11.5H13.8V10.5C13.8,8.7 12.8,8.2 12,8.2Z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+
 }
 
 // Main logic
