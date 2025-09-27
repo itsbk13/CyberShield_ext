@@ -3,12 +3,12 @@ Django settings for backend project.
 """
 
 from pathlib import Path
+from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-!u4s)67q48)7y1&uzgv8#$(rh4^z$-$j9oaai@*gev%$&k#d"
+SECRET_KEY = config('SECRET_KEY')
 DEBUG = True
-# ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
