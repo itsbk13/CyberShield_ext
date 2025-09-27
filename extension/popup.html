@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CyberShield</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="chat-container" id="chatContainer">
+    <div class="background-overlay"></div>
+    
+    <!-- Header -->
+    <div class="header">
+      <div class="header-title">
+        <svg class="shield-icon" viewBox="0 0 24 24">
+          <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10.5V11.5C15.4,11.5 16,12.4 16,13V16C16,16.6 15.6,17 15,17H9C8.4,17 8,16.6 8,16V13C8,12.4 8.4,11.5 9,11.5V10.5C9,8.6 10.6,7 12,7M12,8.2C11.2,8.2 10.2,8.7 10.2,10.5V11.5H13.8V10.5C13.8,8.7 12.8,8.2 12,8.2Z"/>
+        </svg>
+        CyberShield
+      </div>
+      <div class="threat-level" id="threatLevel">
+        <div class="threat-content">
+          <div>Threat</div>
+          <div class="threat-title" id="threatText">Safe</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Language selector -->
+    <div class="language-container">
+      <select class="language-select" id="languageSelect">
+        <option value="English">English</option>
+        <option value="Español">Español</option>
+        <option value="Français">Français</option>
+        <option value="Deutsch">Deutsch</option>
+        <option value="Italiano">Italiano</option>
+        <option value="Português">Português</option>
+        <option value="日本語 (Japanese)">日本語 (Japanese)</option>
+        <option value="中文 (Chinese)">中文 (Chinese)</option>
+        <option value="Русский (Russian)">Русский (Russian)</option>
+        <option value="العربية (Arabic)">العربية (Arabic)</option>
+        <option value="हिन्दी (Hindi)">हिन्दी (Hindi)</option>
+        <option value="한국어 (Korean)">한국어 (Korean)</option>
+        <option value="Türkçe">Türkçe</option>
+        <option value="Nederlands">Nederlands</option>
+        <option value="Svenska">Svenska</option>
+        <option value="Polski">Polski</option>
+        <option value="ไทย (Thai)">ไทย (Thai)</option>
+      </select>
+    </div>
+
+    <!-- Scanning indicator -->
+    <div class="scanning-indicator" id="scanningIndicator">
+      <div class="scanning-dot"></div>
+      <span>SCANNING MATRIX...</span>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages" id="messages">
+      <div id="welcomeMessage" class="welcome-message">
+        Initializing CyberShield v2.0...<br>
+        Welcome to your advanced security matrix.<br>
+        How may I assist?
+      </div>
+    </div>
+
+    <!-- Input container -->
+    <div class="input-container">
+      <div class="input-wrapper">
+        <textarea id="input" class="input-field" placeholder="Enter your query..." rows="1"></textarea>
+        <button class="analyse-toggle active" id="analyseToggle">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+          Analyse
+        </button>
+      </div>
+      <button class="send-button inactive" id="sendButton">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
