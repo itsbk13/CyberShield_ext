@@ -17,8 +17,8 @@
 ## Features
 - **Browser Extension**: Detects phishing attempts in real-time via a user-friendly popup interface.
 - **Backend AI Models**: Powered by machine learning for fraud detection, including datasets:
-  - Phishing detection [Learn more](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls/data)
-  - IEEE fraud detection [Learn more](https://www.kaggle.com/c/ieee-fraud-detection)
+  - `Phishing detection` [Learn more](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls/data)
+  - `IEEE fraud detection` [Learn more](https://www.kaggle.com/c/ieee-fraud-detection)
 - **AI Chatbot**: Integrates Mistral AI for conversational analysis, refining fraud predictions and providing natural language responses in over 100 languages.
 - **Multilingual Support**: Supports detection and interaction in multiple languages using Google Translate API.
 - **Easy-to-Use Interface**: Intuitive design with threat level indicators and scanning animations.
@@ -45,9 +45,9 @@ python manage.py runserver
 ```
 ### 3. Extension Setup
 
-- Open **Chrome/Edge** and go to **chrome://extensions/**
-- Enable Developer mode
-- Click Load unpacked and select the **v2.0_ext/extension** folder
+- Open `Chrome/Edge` and go to `chrome://extensions/`
+- Enable `Developer mode`
+- Click `Load unpacked` and select the `v2.0_ext/extension` folder
 
 
 ## Folder Structure
@@ -62,15 +62,15 @@ v2.0_ext/
 - Start the backend server.
 - Load the browser extension.
 - Interact with the extension:
-  - Toggle the "Analyse" button to enable threat level analysis with the backend-trained model.
-  - If "Analyse" is on, the AI chatbot will scan and respond with threat levels (Safe, Medium, High) and advice otherwise it will reply conversationally.
-  - Switch languages using the dropdown to test multilingual support.
+  - Toggle the `Analyse` button to enable threat level analysis with the backend-trained model.
+  - If `Analyse` is on, the AI chatbot will scan and respond with threat levels `(Safe, Medium, High)` and advice otherwise it will reply conversationally.
+  - `Switch languages` using the dropdown to test multilingual support.
 - Monitor the scanning indicator and threat level UI for real-time feedback when analysis is active.
 
 ## Technologies
 
 - **Python, Django**: Backend framework with REST API for fraud analysis.
-- **Machine Learning Models**: Pickle-based models for phishing and IEEE fraud detection.
+- **Machine Learning Models**: Pickle-based models for phishing and fraud detection.
 - **Mistral AI**: Powers the chatbot for conversational fraud refinement and natural language processing.
 - **Google Translate API**: Enables multilingual support for over 100 languages.
 - **HTML, CSS, JavaScript**: Frontend for the browser extension with dynamic UI.
@@ -79,4 +79,4 @@ v2.0_ext/
 ## License
 - This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 - You may use and modify it for personal, non-commercial purposes, but any distribution (including as a service) requires the source code to be made available under the same license.
-- Commercial use or sale is prohibited without explicit permission from the authors.
+- Commercial use or sale is prohibited without explicit permission from the [Authors](barathsrini13@gmail.com).
