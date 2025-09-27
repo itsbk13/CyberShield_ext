@@ -53,7 +53,7 @@ python manage.py runserver
 ## Folder Structure
 ```bash
 v2.0_ext/
-├── backend/       # Django backend and AI models
+├── backend/       # Django backend with AI models and Mistral API integration
 ├── extension/     # Browser extension files (HTML, JS, CSS, icons)
 └── README.md
 ```
