@@ -53,8 +53,9 @@ python manage.py runserver
 ## Folder Structure
 ```bash
 v2.0_ext/
-├── backend/       # Django backend with AI models and Mistral API integration
-├── extension/     # Browser extension files (HTML, JS, CSS, icons)
+├── backend/                      # Django backend with AI models and Mistral API integration
+├── extension/                    # Browser extension files (HTML, JS, CSS, icons)
+├── CyberShield_ML(Model).ipynb   # Trained ML Model Code Snippets
 └── README.md
 ```
 ## Usage
