@@ -77,6 +77,6 @@ v2.0_ext/
 - **SQLite**: Lightweight database for backend storage.
 
 ## License
-- This project is licensed under the [GNU Affero General Public License v3.0](LICENSE)).
+- This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 - You may use and modify it for personal, non-commercial purposes, but any distribution (including as a service) requires the source code to be made available under the same license.
 - Commercial use or sale is prohibited without explicit permission from the authors.
