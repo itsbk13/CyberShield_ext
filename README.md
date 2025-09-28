@@ -1,4 +1,4 @@
-# CyberShield V2.0
+# CyberShield V2.0🛡️
 
 **CyberShield V2.0** is a comprehensive cybersecurity project that includes a browser extension and a backend system for detecting phishing attacks and fraudulent activities in real-time. It leverages an AI-powered chatbot with Mistral AI for advanced fraud detection and conversational support, making it a powerful tool for personal security.
 
