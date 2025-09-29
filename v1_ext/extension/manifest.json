@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "CyberShield",
+  "version": "1.0",
+  "description": "CyberShield: Your Friendly AI-Powered Scam Detector. A powerful Chrome extension chatbot designed to keep you safe from online scams with real-time fraud detection, multilingual support for over 100 languages, and an engaging conversational interface. Protect yourself from phishing and fraudulent messages—no matter the language!",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["http://127.0.0.1:8000/cb/analyze/"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
