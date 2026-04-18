@@ -54,6 +54,23 @@
       <span>SCANNING MATRIX...</span>
     </div>
 
+    <!-- Threat Intelligence Panel (hidden by default, shown on KEV/CVE match) -->
+    <div class="threat-intel-panel" id="threatIntelPanel" style="display:none;">
+      <div class="threat-intel-header" id="threatIntelHeader">
+        <span class="threat-intel-icon">&#9888;</span>
+        <span id="threatIntelTitle">THREAT INTELLIGENCE</span>
+        <span class="threat-intel-toggle" id="threatIntelToggle">&#9660;</span>
+      </div>
+      <div class="threat-intel-body" id="threatIntelBody">
+        <div id="kevBadge" class="kev-badge" style="display:none;">
+          &#9889; ACTIVELY EXPLOITED &mdash; CISA KEV
+        </div>
+        <div id="kevDetails" class="kev-details"></div>
+        <div id="cveList" class="cve-list"></div>
+        <div id="analystNote" class="analyst-note"></div>
+      </div>
+    </div>
+
     <!-- Messages -->
     <div class="messages" id="messages">
       <div id="welcomeMessage" class="welcome-message">
