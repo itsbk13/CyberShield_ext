@@ -1,4 +1,4 @@
-// Mistral AI API Key (replace with your actual key)
+// Mistral AI API Key
 const MISTRAL_API_KEY = (async () => {
   try {
     const response = await fetch("http://127.0.0.1:8000/cb/analyze/api/get-mistral-key/");
@@ -6,8 +6,8 @@ const MISTRAL_API_KEY = (async () => {
     return await response.text();
   } catch (err) {
     console.error("Error fetching Mistral API Key:", err);
-    addMessage("Oops! Can’t connect to the AI server right now. Try again later.", "bot");
-    return null; // Graceful failure
+    addMessage("Oops! Can't connect to the AI server right now. Try again later.", "bot");
+    return null;
   }
 })();
 
@@ -15,11 +15,11 @@ const MISTRAL_API_KEY = (async () => {
 const LANGUAGE_MAP = {
   "English": "en",
   "தமிழ் (Tamil)": "ta",
-  "తెలుగు (Telugu)": "te", 
+  "తెలుగు (Telugu)": "te",
   "മലയാളം (Malayalam)": "ml",
   "ಕನ್ನಡ (Kannada)": "kn",
-  "हिन्दी (Hindi)": "hi", 
-  "Deutsch": "de", 
+  "हिन्दी (Hindi)": "hi",
+  "Deutsch": "de",
   "Español": "es",
   "Português": "pt",
   "日本語 (Japanese)": "ja",
@@ -33,7 +33,6 @@ const LANGUAGE_MAP = {
 // Initialize variables
 let isAnalyseMode = true;
 let currentLanguage = "English";
-let isTyping = false;
 let conversationHistory = [
   {
     role: "system",
@@ -41,19 +40,15 @@ let conversationHistory = [
   }
 ];
 
-// Utility function to translate text using Google Translate API
+// Translate text via Google Translate
 async function translateText(text, sourceLang, targetLang) {
   try {
     const sourceCode = LANGUAGE_MAP[sourceLang] || "en";
     const targetCode = LANGUAGE_MAP[targetLang] || "en";
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceCode}&tl=${targetCode}&dt=t&q=${encodeURIComponent(text)}`;
     const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Translation failed: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`Translation failed: ${response.status}`);
     const data = await response.json();
-    console.log("Google Translate API Response:", data);
-
     let translatedText = "";
     for (let i = 0; i < data[0].length; i++) {
       translatedText += data[0][i][0];
@@ -65,33 +60,27 @@ async function translateText(text, sourceLang, targetLang) {
   }
 }
 
-// Utility function to call Mistral AI
+// Call Mistral AI
 async function chatWithMistral(messages) {
   if (!await MISTRAL_API_KEY) return "AI service unavailable.";
   try {
     const requestBody = { model: "mistral-medium", messages, max_tokens: 150 };
-    console.log("Mistral API Request Payload:", JSON.stringify(requestBody, null, 2));
     const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${await MISTRAL_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify(requestBody)
     });
     const responseText = await response.text();
-    console.log("Mistral API Response Status:", response.status);
-    console.log("Mistral API Response Body:", responseText);
-
-    if (!response.ok) {
-      throw new Error(`Mistral AI request failed: ${response.status} - ${responseText}`);
-    }
+    if (!response.ok) throw new Error(`Mistral AI request failed: ${response.status} - ${responseText}`);
     const data = JSON.parse(responseText);
     return data.choices[0].message.content;
   } catch (err) {
-    console.error("Detailed Mistral AI error:", err);
+    console.error("Mistral AI error:", err);
     return "Sorry, I'm having trouble chatting right now!";
   }
 }
 
-// Utility function to refine fraud detection
+// Refine fraud detection via Mistral
 async function refineFraudDetection(text, modelPrediction) {
   const messages = [
     { role: "system", content: "You are an AI assistant helping to refine fraud detection accuracy. Given a message and a model prediction, provide a refined assessment of whether the message is phishing, fraud, or safe, and adjust the probability if needed. Respond in the format: 'Refined Prediction: <type> with probability <probability>%'" },
@@ -100,7 +89,7 @@ async function refineFraudDetection(text, modelPrediction) {
   return await chatWithMistral(messages);
 }
 
-// Utility function to redefine response
+// Rephrase response conversationally
 async function redefineResponse(response) {
   const messages = [
     { role: "system", content: "You are a friendly AI assistant. Rephrase the following response in a casual, conversational tone like you're chatting with a friend." },
@@ -109,27 +98,119 @@ async function redefineResponse(response) {
   return await chatWithMistral(messages);
 }
 
-// Function to classify user input
+// Classify if input needs fraud detection
 function needsFraudDetection(text) {
   const lowerText = text.toLowerCase();
   const urlRegex = /(http:\/\/|https:\/\/|\.com)/i;
   const moneyRegex = /(\$|\d+\s*(dollars|usd))/i;
   const suspiciousKeywords = ["urgent", "verify", "account", "login", "password", "click here"];
-  return urlRegex.test(lowerText) || moneyRegex.test(lowerText) || suspiciousKeywords.some(keyword => lowerText.includes(keyword));
+  return urlRegex.test(lowerText) || moneyRegex.test(lowerText) || suspiciousKeywords.some(kw => lowerText.includes(kw));
 }
 
-// Function to update threat level UI
-function updateThreatLevel(probability) {
+// Update threat level badge in header
+// Now also respects risk_level from backend (KEV = CRITICAL overrides ML probability)
+function updateThreatLevel(probability, riskLevel) {
   const threatLevelDiv = document.getElementById("threatLevel");
   let threatClass = "safe";
-  if (probability >= 67) threatClass = "high";
-  else if (probability >= 34) threatClass = "medium";
+
+  // KEV CRITICAL overrides everything
+  if (riskLevel === "CRITICAL") {
+    threatClass = "high";
+  } else if (riskLevel === "HIGH" || probability >= 67) {
+    threatClass = "high";
+  } else if (probability >= 34) {
+    threatClass = "medium";
+  }
+
   threatLevelDiv.className = `threat-level show ${threatClass}`;
-  document.getElementById("threatText").textContent = threatClass.toUpperCase();
+  const label = riskLevel === "CRITICAL" ? "CRITICAL" : threatClass.toUpperCase();
+  document.getElementById("threatText").textContent = label;
   document.getElementById("chatContainer").className = `chat-container threat-${threatClass}`;
 }
 
-// Function to add messages with typing animation
+// Render the Threat Intelligence Panel with CVE + KEV data
+function renderThreatIntelPanel(ti) {
+  const panel = document.getElementById("threatIntelPanel");
+  const kevBadge = document.getElementById("kevBadge");
+  const kevDetails = document.getElementById("kevDetails");
+  const cveList = document.getElementById("cveList");
+  const analystNote = document.getElementById("analystNote");
+  const title = document.getElementById("threatIntelTitle");
+  const header = document.getElementById("threatIntelHeader");
+
+  // Reset
+  kevBadge.style.display = "none";
+  kevDetails.innerHTML = "";
+  cveList.innerHTML = "";
+  analystNote.innerHTML = "";
+
+  if (!ti || (!ti.kev_matched && (!ti.related_cves || ti.related_cves.length === 0))) {
+    panel.style.display = "none";
+    return;
+  }
+
+  // Show panel
+  panel.style.display = "block";
+
+  // Set header color based on risk
+  if (ti.kev_matched) {
+    header.style.background = "linear-gradient(90deg, #ff2244, #cc0022)";
+    title.textContent = "⚠ THREAT INTELLIGENCE — KEV MATCH";
+    kevBadge.style.display = "block";
+
+    // KEV details card
+    const kd = ti.kev_details;
+    if (kd) {
+      kevDetails.innerHTML = `
+        <div class="kev-detail-row"><span class="kev-label">CVE ID</span><span class="kev-value cve-id">${kd.cve_id}</span></div>
+        <div class="kev-detail-row"><span class="kev-label">Vendor</span><span class="kev-value">${kd.vendor}</span></div>
+        <div class="kev-detail-row"><span class="kev-label">Product</span><span class="kev-value">${kd.product}</span></div>
+        <div class="kev-detail-row"><span class="kev-label">Added to KEV</span><span class="kev-value">${kd.date_added}</span></div>
+        <div class="kev-detail-row"><span class="kev-label">Description</span><span class="kev-value">${kd.short_description}</span></div>
+        <div class="kev-detail-row"><span class="kev-label">Required Action</span><span class="kev-value kev-action">${kd.required_action}</span></div>
+      `;
+    }
+  } else {
+    header.style.background = "linear-gradient(90deg, #ff8800, #cc5500)";
+    title.textContent = "⚠ THREAT INTELLIGENCE — CVEs FOUND";
+  }
+
+  // CVE list
+  if (ti.related_cves && ti.related_cves.length > 0) {
+    const cvesHtml = ti.related_cves.map(cve => `
+      <div class="cve-item">
+        <span class="cve-id">${cve.id}</span>
+        ${cve.cvss_score ? `<span class="cvss-badge cvss-${getCvssClass(cve.cvss_score)}">CVSS ${cve.cvss_score}</span>` : ''}
+        <div class="cve-desc">${cve.description}</div>
+      </div>
+    `).join('');
+    cveList.innerHTML = `<div class="cve-section-title">Related CVEs</div>${cvesHtml}`;
+  }
+
+  // Analyst note
+  if (ti.analyst_note) {
+    analystNote.innerHTML = `<div class="analyst-note-text">🔍 ${ti.analyst_note}</div>`;
+  }
+
+  // Toggle collapse on header click
+  const toggle = document.getElementById("threatIntelToggle");
+  const body = document.getElementById("threatIntelBody");
+  header.onclick = () => {
+    const isOpen = body.style.display !== "none";
+    body.style.display = isOpen ? "none" : "block";
+    toggle.innerHTML = isOpen ? "&#9650;" : "&#9660;";
+  };
+}
+
+// CVSS severity class helper
+function getCvssClass(score) {
+  if (score >= 9.0) return "critical";
+  if (score >= 7.0) return "high";
+  if (score >= 4.0) return "medium";
+  return "low";
+}
+
+// Add message to chat with typing animation
 async function addMessage(text, type) {
   const messagesDiv = document.getElementById("messages");
   const wrapper = document.createElement("div");
@@ -163,9 +244,10 @@ async function addMessage(text, type) {
     message.textContent = text;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
-  // Use the shield icon from popup.html for bot avatar
-  avatar.innerHTML = type === "bot" ? '<svg class="shield-icon" viewBox="0 0 24 24"><path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10.5V11.5C15.4,11.5 16,12.4 16,13V16C16,16.6 15.6,17 15,17H9C8.4,17 8,16.6 8,16V13C8,12.4 8.4,11.5 9,11.5V10.5C9,8.6 10.6,7 12,7M12,8.2C11.2,8.2 10.2,8.7 10.2,10.5V11.5H13.8V10.5C13.8,8.7 12.8,8.2 12,8.2Z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 
+  avatar.innerHTML = type === "bot"
+    ? '<svg class="shield-icon" viewBox="0 0 24 24"><path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10.5V11.5C15.4,11.5 16,12.4 16,13V16C16,16.6 15.6,17 15,17H9C8.4,17 8,16.6 8,16V13C8,12.4 8.4,11.5 9,11.5V10.5C9,8.6 10.6,7 12,7M12,8.2C11.2,8.2 10.2,8.7 10.2,10.5V11.5H13.8V10.5C13.8,8.7 12.8,8.2 12,8.2Z"/></svg>'
+    : '<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 }
 
 // Main logic
@@ -176,13 +258,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const languageSelect = document.getElementById("languageSelect");
   const scanningIndicator = document.getElementById("scanningIndicator");
 
-  // Update current language
   languageSelect.addEventListener("change", (e) => {
     currentLanguage = e.target.value;
     addMessage(`Language set to: ${currentLanguage}`, "bot");
   });
 
-  // Toggle analyse mode
   analyseToggle.addEventListener("click", () => {
     isAnalyseMode = !isAnalyseMode;
     analyseToggle.classList.toggle("active", isAnalyseMode);
@@ -190,7 +270,6 @@ document.addEventListener("DOMContentLoaded", () => {
     addMessage(`Analyse mode ${isAnalyseMode ? "on" : "off"}`, "bot");
   });
 
-  // Send message
   async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
@@ -227,6 +306,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
         console.log("Response from Django:", data);
 
+        // Extract threat intelligence from response
+        const ti = data.threat_intelligence || {};
+
+        // Build KEV context string for Mistral prompt
+        let kevContext = "";
+        if (ti.kev_matched && ti.kev_details) {
+          kevContext = `CRITICAL: KEV MATCH detected. CVE ${ti.kev_details.cve_id} affects ${ti.kev_details.vendor} ${ti.kev_details.product} and is ACTIVELY EXPLOITED in the wild as per CISA KEV list. Required action: ${ti.kev_details.required_action}`;
+        } else if (ti.related_cves && ti.related_cves.length > 0) {
+          kevContext = `Related CVEs found: ${ti.related_cves.map(c => `${c.id} (CVSS: ${c.cvss_score || 'N/A'})`).join(", ")}. Review and apply patches based on CVSS severity.`;
+        }
+
+        // Refine prediction via Mistral
         const refinedPrediction = await refineFraudDetection(textForAnalysis, data);
         let refinedType = "LOW RISK";
         let refinedProbability = data.probability || 50;
@@ -236,10 +327,16 @@ document.addEventListener("DOMContentLoaded", () => {
           refinedProbability = parseInt(predictionMatch[2]);
         }
 
-        updateThreatLevel(refinedProbability);
+        // Update threat level — KEV risk_level takes priority over ML probability
+        updateThreatLevel(refinedProbability, ti.risk_level);
+
+        // Render threat intelligence panel
+        renderThreatIntelPanel(ti);
+
+        // Build result string including KEV context for Mistral
         const result = refinedType.includes("PHISHING") || refinedType.includes("FRAUD")
-          ? `🚨 Potential ${refinedType} detected with ${refinedProbability}% probability! ${data.advice || "Be careful!"}`
-          : `No immediate threats detected (probability: ${refinedProbability}%). ${data.advice || "Stay safe!"}`;
+          ? `🚨 Potential ${refinedType} detected with ${refinedProbability}% probability! ${data.advice || "Be careful!"}${kevContext ? " " + kevContext : ""}`
+          : `No immediate threats detected (probability: ${refinedProbability}%). ${data.advice || "Stay safe!"}${kevContext ? " Note: " + kevContext : ""}`;
 
         conversationHistory.push({ role: "system", content: `Fraud detection result: ${result}` });
         let mistralResponse = await chatWithMistral(conversationHistory);
@@ -263,7 +360,10 @@ document.addEventListener("DOMContentLoaded", () => {
         scanningIndicator.classList.remove("show");
       }
     } else {
-      updateThreatLevel(0);
+      // No threat detection needed — hide intel panel and reset
+      updateThreatLevel(0, "LOW");
+      renderThreatIntelPanel(null);
+
       let mistralResponse = await chatWithMistral(conversationHistory);
       mistralResponse = await redefineResponse(mistralResponse);
       await addMessage(mistralResponse, "bot");
@@ -281,7 +381,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Event listeners
   sendButton.addEventListener("click", sendMessage);
   input.addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
