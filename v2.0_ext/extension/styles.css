@@ -646,3 +646,210 @@ body {
   scrollbar-width: thin;
   scrollbar-color: #00ff00 transparent;
 }
+
+/* ============================================
+   THREAT INTELLIGENCE PANEL — CVE / KEV
+   ============================================ */
+
+.threat-intel-panel {
+  z-index: 11;
+  position: relative;
+  margin: 0 12px 6px 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  animation: fadeIn 0.4s ease-out;
+  box-shadow: 0 0 20px rgba(255, 34, 68, 0.4);
+}
+
+.threat-intel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #ff2244, #cc0022);
+  cursor: pointer;
+  user-select: none;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.threat-intel-icon {
+  font-size: 14px;
+}
+
+#threatIntelTitle {
+  flex: 1;
+}
+
+.threat-intel-toggle {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.threat-intel-body {
+  background: rgba(20, 0, 0, 0.92);
+  border: 1px solid rgba(255, 34, 68, 0.4);
+  border-top: none;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ff2244 transparent;
+}
+
+.threat-intel-body::-webkit-scrollbar {
+  width: 3px;
+}
+
+.threat-intel-body::-webkit-scrollbar-thumb {
+  background: #ff2244;
+  border-radius: 2px;
+}
+
+/* KEV Active Exploitation Badge */
+.kev-badge {
+  background: linear-gradient(90deg, #ff0000, #cc0000);
+  color: #fff;
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  text-align: center;
+  animation: pulse-fast 1s infinite;
+  box-shadow: 0 0 12px rgba(255, 0, 0, 0.6);
+}
+
+/* KEV Detail Rows */
+.kev-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kev-detail-row {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.kev-label {
+  color: rgba(255, 100, 100, 0.9);
+  font-weight: 600;
+  min-width: 90px;
+  font-family: 'Exo 2', sans-serif;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.kev-value {
+  color: rgba(255, 220, 220, 0.95);
+  font-family: 'Exo 2', sans-serif;
+  word-break: break-word;
+}
+
+.kev-action {
+  color: #ffcc00;
+  font-weight: 600;
+}
+
+/* CVE Section */
+.cve-section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 150, 50, 0.9);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 150, 50, 0.2);
+  padding-bottom: 3px;
+}
+
+.cve-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 5px;
+  border: 1px solid rgba(255, 100, 0, 0.2);
+}
+
+.cve-id {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff8844;
+  letter-spacing: 0.5px;
+}
+
+.cve-desc {
+  width: 100%;
+  font-size: 10px;
+  color: rgba(255, 200, 180, 0.85);
+  font-family: 'Exo 2', sans-serif;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+/* CVSS Severity Badges */
+.cvss-badge {
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.cvss-critical {
+  background: #ff0033;
+  color: #fff;
+  box-shadow: 0 0 6px rgba(255, 0, 51, 0.6);
+}
+
+.cvss-high {
+  background: #ff6600;
+  color: #fff;
+  box-shadow: 0 0 6px rgba(255, 102, 0, 0.5);
+}
+
+.cvss-medium {
+  background: #ffaa00;
+  color: #000;
+  box-shadow: 0 0 6px rgba(255, 170, 0, 0.4);
+}
+
+.cvss-low {
+  background: #44bb44;
+  color: #000;
+  box-shadow: 0 0 6px rgba(68, 187, 68, 0.4);
+}
+
+/* Analyst Note */
+.analyst-note {
+  border-top: 1px solid rgba(255, 200, 0, 0.2);
+  padding-top: 6px;
+}
+
+.analyst-note-text {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 10px;
+  color: #ffdd88;
+  line-height: 1.5;
+  font-style: italic;
+}
