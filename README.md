@@ -64,7 +64,7 @@ User Input (Extension)
    (phishing / fraud / safe)                                  │
         │                                         ┌────────────────────┐
         │                                         ▼                    ▼
-        │                               VENDOR_MAP match          fallback
+        │                                 VENDOR_MAP match          fallback
         │                                      │                domain extract
         │                          mode=direct    mode=nvd       
         │                                 │          │ 
