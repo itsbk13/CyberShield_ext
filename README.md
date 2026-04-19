@@ -134,12 +134,6 @@ For famous named exploits, the CVE is **injected directly** without calling NVD,
 - `heartbleed` → `CVE-2014-0160`
 - `shellshock` → `CVE-2014-6271`
 - `printnightmare` → `CVE-2021-34527`
-- `spring4shell` → `CVE-2022-22965`
-- `pwnkit` / `polkit` → `CVE-2021-4034`
-- `dirtypipe` → `CVE-2022-0847`
-- `sunburst` → `CVE-2020-10148`
-- `follina` → `CVE-2022-30190`
-- `text4shell` → `CVE-2022-42889`
 - Direct CVE ID input (e.g. `CVE-2021-44228`) also supported
 
 ### Flow 2 — NVD API Search (`mode: nvd`)
@@ -167,7 +161,6 @@ The `VENDOR_MAP` dictionary in `views.py` maps text keywords to CVE lookup strat
 VENDOR_MAP = {
     "log4j":      {"mode": "direct", "cve": "CVE-2021-44228", "nvd_kw": "log4j"},
     "confluence":  {"mode": "nvd",    "nvd_kw": "atlassian confluence"},
-    "exchange":    {"mode": "nvd",    "nvd_kw": "microsoft exchange"},
     # ... 80+ entries covering major vendors and CVEs
 }
 ```
