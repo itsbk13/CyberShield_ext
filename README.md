@@ -20,19 +20,14 @@
 - [What's New in v2.0](#-whats-new-in-v20)
 - [How It Works](#-how-it-works)
 - [Architecture](#-architecture)
+- [CVE/KEV Intelligence Engine](#-cvekev-intelligence-engine)
+- [VENDOR_MAP Reference](#-vendor_map-reference)
 - [Repository Structure](#-repository-structure)
 - [Tech Stack](#-tech-stack)
 - [Setup & Installation](#-setup--installation)
 - [API Endpoints](#-api-endpoints)
-- [CVE/KEV Intelligence Engine](#-cvekev-intelligence-engine)
-- [VENDOR_MAP Reference](#-vendor_map-reference)
 - [Threat Risk Levels](#-threat-risk-levels)
-- [Multi-Language Support](#-multi-language-support)
-- [ML Model](#-ml-model)
 - [Extension Features](#-extension-features)
-- [Testing](#-testing)
-- [Environment Variables](#-environment-variables)
-- [Documentation Files](#-documentation-files)
 - [Contributing](#-contributing)
 - [License](#-license)
 
@@ -198,7 +193,7 @@ CyberShield_ext/
     │       ├── views.py              ← All API logic + CVE/KEV engine
     │       ├── urls.py               ← App URL routing
     │       ├── models.py
-    │       ├── model.pkl/             ← Trained ML model (joblib)
+    │       ├── models/             ← Trained ML model (joblib)
     │       └── migrations/
     │
     └── extension/                    ← Chrome Extension
@@ -353,21 +348,6 @@ Returns the Gemini API key for the extension to use directly.
 ```json
 { "key": "AIza..." }
 ```
-
----
-
-## 📄 Documentation Files
-
-| File | Contents |
-|---|---|
-| [`API_RESPONSE_EXAMPLES.md`](API_RESPONSE_EXAMPLES.md) | Full JSON response samples for all risk levels |
-| [`COLOR_CODED_PANEL_GUIDE.md`](COLOR_CODED_PANEL_GUIDE.md) | Threat panel UI colour spec & CSS guide |
-| [`FINAL_SUMMARY.md`](FINAL_SUMMARY.md) | Complete v2.0 feature inventory |
-| [`KEV_ENRICHMENT_GUIDE.md`](KEV_ENRICHMENT_GUIDE.md) | Deep-dive into the CVE/KEV engine design |
-| [`KEV_RESPONSE_COMPARISON.md`](KEV_RESPONSE_COMPARISON.md) | Before/after diff for KEV enrichment |
-| [`KEV_VERIFICATION_SUMMARY.md`](KEV_VERIFICATION_SUMMARY.md) | Accuracy & reliability verification of KEV matching |
-| [`QUICK_REFERENCE.md`](QUICK_REFERENCE.md) | Dev cheat-sheet (endpoints, tokens, test keywords) |
-| [`SECURITY_FIXES.md`](SECURITY_FIXES.md) | Auth hardening, token validation, CORS notes |
 
 ---
 
