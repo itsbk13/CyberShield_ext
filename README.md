@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-2.0.0-red?style=flat-square)](https://github.com/itsbk13/CyberShield_ext)
 
-**CyberShield** is a Chrome browser extension that detects phishing, fraud, and scams in real-time using a custom ML model, Google Gemini 3.1 Flash AI, CISA KEV intelligence, and live NVD CVE enrichment — all through a conversational chat interface.
+**CyberShield** is a browser extension that detects phishing, fraud, and scams in real-time using a custom ML model, Gemini AI, CISA KEV intelligence and live NVD CVE enrichment — all through a conversational chat interface.
 
 </div>
 
