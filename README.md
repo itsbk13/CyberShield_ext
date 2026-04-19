@@ -253,64 +253,6 @@ CyberShield_ext/
 
 ---
 
-## 📡 API Endpoints
-
-All endpoints require:
-```
-Authorization: Bearer cybershield_extension_token
-```
-
-### `POST /cb/analyze_text/`
-
-Analyze text for phishing/fraud + CVE/KEV enrichment.
-
-**Request:**
-```json
-{
-  "text": "Urgent: Your PayPal account has been compromised. Click here to verify."
-}
-```
-
-**Response:**
-```json
-{
-  "is_phishing": true,
-  "is_fraud": false,
-  "probability": 92,
-  "advice": "Do not click any links. Contact PayPal directly.",
-  "threat_intelligence": {
-    "related_cves": [
-      {
-        "id": "CVE-2021-44228",
-        "description": "Apache Log4j2 RCE vulnerability...",
-        "cvss_score": 10.0
-      }
-    ],
-    "kev_matched": true,
-    "kev_details": {
-      "cve_id": "CVE-2021-44228",
-      "vendor": "Apache",
-      "product": "Log4j2",
-      "date_added": "2021-12-10",
-      "short_description": "Apache Log4j2 allows RCE...",
-      "required_action": "Apply vendor patches immediately."
-    },
-    "risk_level": "CRITICAL"
-  }
-}
-```
-
-### `GET /cb/get_gemini_key/`
-
-Returns the Gemini API key for the extension to use directly.
-
-**Response:**
-```json
-{ "key": "AIza..." }
-```
-
----
-
 ## 🎨 Threat Risk Levels
 
 | Level | Trigger | Panel Colour | Badge |
@@ -377,6 +319,64 @@ Backend runs at `http://127.0.0.1:8000`
 2. Enable **Developer Mode**
 3. Click **Load unpacked**
 4. Select `v2.0_ext/extension/`
+
+---
+
+## 📡 API Endpoints
+
+All endpoints require:
+```
+Authorization: Bearer cybershield_extension_token
+```
+
+### `POST /cb/analyze_text/`
+
+Analyze text for phishing/fraud + CVE/KEV enrichment.
+
+**Request:**
+```json
+{
+  "text": "Urgent: Your PayPal account has been compromised. Click here to verify."
+}
+```
+
+**Response:**
+```json
+{
+  "is_phishing": true,
+  "is_fraud": false,
+  "probability": 92,
+  "advice": "Do not click any links. Contact PayPal directly.",
+  "threat_intelligence": {
+    "related_cves": [
+      {
+        "id": "CVE-2021-44228",
+        "description": "Apache Log4j2 RCE vulnerability...",
+        "cvss_score": 10.0
+      }
+    ],
+    "kev_matched": true,
+    "kev_details": {
+      "cve_id": "CVE-2021-44228",
+      "vendor": "Apache",
+      "product": "Log4j2",
+      "date_added": "2021-12-10",
+      "short_description": "Apache Log4j2 allows RCE...",
+      "required_action": "Apply vendor patches immediately."
+    },
+    "risk_level": "CRITICAL"
+  }
+}
+```
+
+### `GET /cb/get_gemini_key/`
+
+Returns the Gemini API key for the extension to use directly.
+
+**Response:**
+```json
+{ "key": "AIza..." }
+```
 
 ---
 
