@@ -177,42 +177,20 @@ CyberShield_ext/
 ├── README.md                         ← You are here
 ├── LICENSE                           ← MIT License
 │
-├── API_RESPONSE_EXAMPLES.md          ← Full JSON response samples
-├── COLOR_CODED_PANEL_GUIDE.md        ← UI threat panel colour spec
-├── FINAL_SUMMARY.md                  ← Complete v2.0 feature summary
-├── KEV_ENRICHMENT_GUIDE.md           ← CVE/KEV engine deep-dive
-├── KEV_RESPONSE_COMPARISON.md        ← Before/after KEV response diff
-├── KEV_VERIFICATION_SUMMARY.md       ← KEV accuracy verification
-├── QUICK_REFERENCE.md                ← Dev cheat-sheet
-├── SECURITY_FIXES.md                 ← Security hardening notes
-│
-├── response_details.py               ← Advice/response text builder
-├── test1.py                          ← Basic phishing tests
-├── test2.py                          ← Fraud tests
-├── test3.py                          ← Safe message tests
-├── test_kev.py                       ← KEV pipeline unit tests
-├── test_kev_full.py                  ← Full KEV flow integration
-├── test_kev_panel.py                 ← UI panel rendering tests
-├── test_multiple_cves.py             ← Multi-CVE response tests
-├── test_orange_panel.py              ← HIGH-risk (non-KEV) panel tests
-├── test_scenarios.py                 ← End-to-end scenario tests
-├── test_summary.py                   ← Test result summary runner
-│
 ├── v1_ext/                           ← Legacy v1.0 (reference only)
 │
 └── v2.0_ext/
     ├── CyberShield_ML(Model).ipynb   ← Model training notebook
     │
     ├── Datasets/
-    │   ├── phishing_dataset.csv
-    │   ├── fraud_dataset.csv
-    │   └── safe_dataset.csv
+    │   ├── PhiUSIIL phishing dataset (Direct Fetch)
+    │   └── spam_ham_dataset.csv
     │
     ├── backend/                      ← Django REST API
     │   ├── manage.py
     │   ├── .env                      ← GEMINI_API_KEY, SECRET_KEY
     │   ├── requirements.txt
-    │   ├── cybershield/              ← Django project config
+    │   ├── backend/              ← Django project config
     │   │   ├── settings.py
     │   │   ├── urls.py               ← Root URL config
     │   │   └── wsgi.py
@@ -220,8 +198,7 @@ CyberShield_ext/
     │       ├── views.py              ← All API logic + CVE/KEV engine
     │       ├── urls.py               ← App URL routing
     │       ├── models.py
-    │       ├── model.pkl             ← Trained ML model (joblib)
-    │       ├── vectorizer.pkl        ← TF-IDF vectorizer (joblib)
+    │       ├── model.pkl/             ← Trained ML model (joblib)
     │       └── migrations/
     │
     └── extension/                    ← Chrome Extension
@@ -230,9 +207,7 @@ CyberShield_ext/
         ├── popup.js                  ← Full chat + Gemini + threat logic
         ├── popup.css                 ← Threat panel + chat styles
         └── icons/
-            ├── icon16.png
-            ├── icon48.png
-            └── icon128.png
+
 ```
 
 ---
@@ -245,6 +220,7 @@ CyberShield_ext/
 | AI / Chat | Google Gemini 3.1 Flash (`gemini-3.1-flash-lite-preview`) |
 | Backend | Django 5.2.6, Python 3.13.1 |
 | ML Model | Scikit-learn (TF-IDF + SGDClassifier) |
+| Datasets | [PhiUSIIL phishing dataset](https://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset) , [spam_ham_dataset.csv](https://www.kaggle.com/datasets/meruvulikith/190k-spam-ham-email-dataset-for-classification)|
 | CVE Data | NIST NVD API v2.0 |
 | KEV Data | CISA Known Exploited Vulnerabilities Feed |
 | Translation | Google Translate (free API) |
