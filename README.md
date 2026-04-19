@@ -6,7 +6,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Django](https://img.shields.io/badge/Django-4.x-092E20?style=flat-square&logo=django&logoColor=white)](https://djangoproject.com)
 [![Gemini](https://img.shields.io/badge/Gemini-3.1_Flash-4285F4?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/License-PFN-green?style=flat-square)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-2.0.0-red?style=flat-square)](https://github.com/itsbk13/CyberShield_ext)
 
 **CyberShield** is a Chrome browser extension that detects phishing, fraud, and scams in real-time using a custom ML model, Google Gemini 2.5 Flash AI, CISA KEV intelligence, and live NVD CVE enrichment — all through a conversational chat interface.
