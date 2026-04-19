@@ -3,8 +3,8 @@
 # 🛡️ CyberShield v2.0
 ### AI-Powered Scam & Threat Detection Browser Extension
 
-[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![Django](https://img.shields.io/badge/Django-4.x-092E20?style=flat-square&logo=django&logoColor=white)](https://djangoproject.com)
+[![Python](https://img.shields.io/badge/Python-3.13.1-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![Django](https://img.shields.io/badge/Django-5.2.6-092E20?style=flat-square&logo=django&logoColor=white)](https://djangoproject.com)
 [![Gemini](https://img.shields.io/badge/Gemini-3.1_Flash-4285F4?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev)
 [![License](https://img.shields.io/badge/License-PFN-green?style=flat-square)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-2.0.0-red?style=flat-square)](https://github.com/itsbk13/CyberShield_ext)
