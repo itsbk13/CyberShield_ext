@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🛡️ CyberShield v2.0
-### AI-Powered Scam & Threat Detection Browser Extension
+### AI-Powered Scam & Threat Detection Extension
 
 [![Python](https://img.shields.io/badge/Python-3.13.1-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Django](https://img.shields.io/badge/Django-5.2.6-092E20?style=flat-square&logo=django&logoColor=white)](https://djangoproject.com)
