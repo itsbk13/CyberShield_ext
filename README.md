@@ -43,7 +43,7 @@
 | KEV Cross-Reference | ✅ CISA KEV live feed |
 | Direct CVE Injection | ✅ 30+ named exploits (Log4Shell, EternalBlue…) |
 | Threat Panel UI | ✅ Collapsible color-coded panel |
-| Multi-Language  | ✅ 15 languages via Google Translate |
+| Multi-Language  | ✅ 15+ languages via Google Translate |
 | Response Caching | ✅ 24h TTL CVE cache |
 | Token Auth  | ✅ Bearer token on all endpoints |
 
