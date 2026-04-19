@@ -24,10 +24,9 @@
 - [VENDOR_MAP Reference](#-vendor_map-reference)
 - [Repository Structure](#-repository-structure)
 - [Tech Stack](#-tech-stack)
-- [Setup & Installation](https://github.com/itsbk13/CyberShield_ext/blob/main/CONTRIBUTING.md)
-- [API Endpoints](#-api-endpoints)
 - [Threat Risk Levels](#-threat-risk-levels)
 - [Extension Features](#-extension-features)
+- [Setup & Installation](https://github.com/itsbk13/CyberShield_ext/blob/main/CONTRIBUTING.md)
 - [Contributing](https://github.com/itsbk13/CyberShield_ext/blob/main/CONTRIBUTING.md)
 - [License](#-license)
 
@@ -246,64 +245,6 @@ The header badge, chat container border, and Threat Intelligence Panel all respo
 | **Threat Level Badge** | Header badge + chat border colour changes with risk level |
 | **Language Selector** | Dropdown to switch UI+analysis language |
 | **Timestamp per message** | Every chat bubble shows HH:MM time |
-
----
-
-## 📡 API Endpoints
-
-All endpoints require:
-```
-Authorization: Bearer cybershield_extension_token
-```
-
-### `POST /cb/analyze_text/`
-
-Analyze text for phishing/fraud + CVE/KEV enrichment.
-
-**Request:**
-```json
-{
-  "text": "Urgent: Your PayPal account has been compromised. Click here to verify."
-}
-```
-
-**Response:**
-```json
-{
-  "is_phishing": true,
-  "is_fraud": false,
-  "probability": 92,
-  "advice": "Do not click any links. Contact PayPal directly.",
-  "threat_intelligence": {
-    "related_cves": [
-      {
-        "id": "CVE-2021-44228",
-        "description": "Apache Log4j2 RCE vulnerability...",
-        "cvss_score": 10.0
-      }
-    ],
-    "kev_matched": true,
-    "kev_details": {
-      "cve_id": "CVE-2021-44228",
-      "vendor": "Apache",
-      "product": "Log4j2",
-      "date_added": "2021-12-10",
-      "short_description": "Apache Log4j2 allows RCE...",
-      "required_action": "Apply vendor patches immediately."
-    },
-    "risk_level": "CRITICAL"
-  }
-}
-```
-
-### `GET /cb/get_gemini_key/`
-
-Returns the Gemini API key for the extension to use directly.
-
-**Response:**
-```json
-{ "key": "AIza..." }
-```
 
 ---
 
