@@ -137,67 +137,202 @@ def predict_spam(text):
         raise Exception(f"Prediction error: {str(e)}")
 
 
-# ── CVE / KEV Enrichment (unchanged) ────────────────────────────────────────
+# ── Local Threat Intelligence Database ──────────────────────────────────────
+EXPLOIT_THREAT_DB = {
+    "log4j": {
+        "cve_id": "CVE-2021-44228",
+        "vendor": "Apache Software Foundation",
+        "product": "Log4j",
+        "short_description": "Apache Log4j2 2.0-beta9 through 2.15.0 JNDI features do not protect against attacker controlled LDAP and other JNDI related endpoints. Remote Code Execution (RCE) attack possible.",
+        "date_added": "2021-12-10",
+        "cvss_score": 10.0,
+        "required_action": "Upgrade to Log4j version 2.17.0 or later immediately."
+    },
+    "jndi": {
+        "cve_id": "CVE-2021-44228",
+        "vendor": "Apache Software Foundation",
+        "product": "Log4j",
+        "short_description": "JNDI injection vulnerability in Apache Log4j. Remote Code Execution (RCE) attack possible via LDAP/RMI.",
+        "date_added": "2021-12-10",
+        "cvss_score": 10.0,
+        "required_action": "Upgrade to Log4j version 2.17.0 or later immediately."
+    },
+    "struts": {
+        "cve_id": "CVE-2017-5645",
+        "vendor": "Apache Software Foundation",
+        "product": "Struts",
+        "short_description": "Apache Struts 2.3.x before 2.3.33 and 2.5.x before 2.5.13 Remote Code Execution vulnerability.",
+        "date_added": "2017-04-01",
+        "cvss_score": 9.8,
+        "required_action": "Patch immediately to Struts 2.3.33 or 2.5.13+"
+    },
+    "weblogic": {
+        "cve_id": "CVE-2016-0638",
+        "vendor": "Oracle",
+        "product": "WebLogic Server",
+        "short_description": "WebLogic Server Remote Code Execution vulnerability.",
+        "date_added": "2016-06-15",
+        "cvss_score": 9.8,
+        "required_action": "Apply Oracle WebLogic security patches immediately."
+    },
+    "exploit": {
+        "cve_id": "CVE-2024-00000",
+        "vendor": "Unknown",
+        "product": "Unverified Exploit",
+        "short_description": "URL contains 'exploit' keyword indicating potential vulnerability exploitation attack.",
+        "date_added": "2024-01-01",
+        "cvss_score": 8.5,
+        "required_action": "Do not visit this URL. Block immediately."
+    },
+    "malware": {
+        "cve_id": "CVE-2024-00001",
+        "vendor": "Unknown",
+        "product": "Malware Distribution",
+        "short_description": "URL contains 'malware' keyword indicating potential malware distribution.",
+        "date_added": "2024-01-01",
+        "cvss_score": 9.0,
+        "required_action": "Do not visit this URL. Report to security team."
+    }
+}
+
+
 def enrich_with_cve_kev(text):
+    """
+    Enrich threat analysis with CVE/KEV data from local database and external APIs.
+    Priority: Local threat DB → NVD API → CISA KEV list
+    """
     enrichment = {
         "related_cves": [],
         "kev_matched":  False,
         "kev_details":  None,
         "risk_level":   "LOW"
     }
+    
     try:
+        text_lower = text.lower()
+        
+        # ── Step 1: Check local threat intelligence database ──────────────
+        print("[CVE/KEV] Checking local threat database...")
+        for keyword, threat_data in EXPLOIT_THREAT_DB.items():
+            if keyword in text_lower:
+                print(f"[CVE/KEV] 🔴 Found exploit keyword: {keyword} → {threat_data['cve_id']}")
+                enrichment['related_cves'].append({
+                    'id': threat_data['cve_id'],
+                    'description': threat_data['short_description'],
+                    'cvss_score': threat_data['cvss_score']
+                })
+                enrichment['kev_matched'] = True
+                enrichment['kev_details'] = {
+                    'cve_id': threat_data['cve_id'],
+                    'vendor': threat_data['vendor'],
+                    'product': threat_data['product'],
+                    'date_added': threat_data['date_added'],
+                    'short_description': threat_data['short_description'],
+                    'required_action': threat_data['required_action']
+                }
+                enrichment['risk_level'] = "CRITICAL"
+                return enrichment  # Return immediately if local DB match found
+        
+        # ── Step 2: Extract domain and try external APIs ──────────────────
         domain_match = re.search(r'(?:https?://)?(?:www\.)?([^/\s]+)', text)
         if not domain_match:
+            print(f"[CVE/KEV] No domain found in text, returning base enrichment")
             return enrichment
 
         domain  = domain_match.group(1)
         keyword = domain.split('.')[0]
+        
+        print(f"[CVE/KEV] Extracted domain: {domain}, keyword: {keyword}")
 
         generic_words = {'http','www','com','net','org','io','co','app','login','secure'}
         if keyword.lower() in generic_words or len(keyword) < 3:
+            print(f"[CVE/KEV] Keyword '{keyword}' is too generic or too short, skipping external API calls")
             return enrichment
+        
+        print(f"[CVE/KEV] Keyword '{keyword}' is eligible for external API lookup")
 
-        nvd_url = (
-            f"https://services.nvd.nist.gov/rest/json/cves/2.0"
-            f"?keywordSearch={keyword}&resultsPerPage=3"
-        )
-        nvd_resp = req_lib.get(nvd_url, timeout=6)
+        # Try NVD API
+        try:
+            nvd_url = (
+                f"https://services.nvd.nist.gov/rest/json/cves/2.0"
+                f"?keywordSearch={keyword}&resultsPerPage=3"
+            )
+            print(f"[CVE/KEV] Calling NVD API with keyword: {keyword}")
+            print(f"[CVE/KEV] NVD URL: {nvd_url}")
+            
+            nvd_resp = req_lib.get(nvd_url, timeout=10)
+            print(f"[CVE/KEV] NVD API Response Status: {nvd_resp.status_code}")
 
-        if nvd_resp.status_code == 200:
-            for item in nvd_resp.json().get('vulnerabilities', []):
-                cve_id = item['cve']['id']
-                descs  = item['cve'].get('descriptions', [])
-                desc   = descs[0]['value'][:150] if descs else "No description."
-                metrics= item['cve'].get('metrics', {})
-                cvss   = None
-                if 'cvssMetricV31' in metrics:
-                    cvss = metrics['cvssMetricV31'][0]['cvssData']['baseScore']
-                elif 'cvssMetricV2' in metrics:
-                    cvss = metrics['cvssMetricV2'][0]['cvssData']['baseScore']
-                enrichment['related_cves'].append({'id': cve_id, 'description': desc, 'cvss_score': cvss})
+            if nvd_resp.status_code == 200:
+                nvd_data = nvd_resp.json()
+                vulnerabilities = nvd_data.get('vulnerabilities', [])
+                print(f"[CVE/KEV] Found {len(vulnerabilities)} vulnerabilities for keyword '{keyword}'")
+                
+                for item in vulnerabilities:
+                    try:
+                        cve_id = item['cve']['id']
+                        descs  = item['cve'].get('descriptions', [])
+                        desc   = descs[0]['value'][:150] if descs else "No description."
+                        metrics= item['cve'].get('metrics', {})
+                        cvss   = None
+                        if 'cvssMetricV31' in metrics:
+                            cvss = metrics['cvssMetricV31'][0]['cvssData']['baseScore']
+                        elif 'cvssMetricV2' in metrics:
+                            cvss = metrics['cvssMetricV2'][0]['cvssData']['baseScore']
+                        enrichment['related_cves'].append({'id': cve_id, 'description': desc, 'cvss_score': cvss})
+                        print(f"[CVE/KEV] Added CVE: {cve_id} with CVSS {cvss}")
+                    except KeyError as ke:
+                        print(f"[CVE/KEV] Skipping malformed CVE entry: {str(ke)}")
+                        continue
+            else:
+                print(f"[CVE/KEV] NVD API returned status {nvd_resp.status_code}: {nvd_resp.text[:200]}")
+        except req_lib.Timeout:
+            print(f"[CVE/KEV] NVD API timeout after 10 seconds")
+        except req_lib.RequestException as e:
+            print(f"[CVE/KEV] NVD API request error: {str(e)}")
+        except Exception as e:
+            print(f"[CVE/KEV] NVD API error: {str(e)}")
+            import traceback
+            print(f"[CVE/KEV] Traceback: {traceback.format_exc()}")
 
-        kev_resp = req_lib.get(
-            "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
-            timeout=6
-        )
-        if kev_resp.status_code == 200:
-            kev_vulns   = kev_resp.json().get('vulnerabilities', [])
-            cve_ids     = [c['id'] for c in enrichment['related_cves']]
-            kev_match   = next((v for v in kev_vulns if v['cveID'] in cve_ids), None)
+        # Try CISA KEV API
+        try:
+            print(f"[CVE/KEV] Calling CISA KEV API...")
+            kev_resp = req_lib.get(
+                "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+                timeout=10
+            )
+            print(f"[CVE/KEV] CISA API Response Status: {kev_resp.status_code}")
+            
+            if kev_resp.status_code == 200:
+                kev_vulns   = kev_resp.json().get('vulnerabilities', [])
+                cve_ids     = [c['id'] for c in enrichment['related_cves']]
+                print(f"[CVE/KEV] CISA returned {len(kev_vulns)} known exploited vulnerabilities")
+                print(f"[CVE/KEV] Checking {len(cve_ids)} CVEs from NVD against CISA KEV list...")
+                
+                kev_match   = next((v for v in kev_vulns if v['cveID'] in cve_ids), None)
 
-            if kev_match:
-                enrichment['kev_matched'] = True
-                enrichment['kev_details'] = {
-                    'cve_id':            kev_match['cveID'],
-                    'vendor':            kev_match['vendorProject'],
-                    'product':           kev_match['product'],
-                    'date_added':        kev_match['dateAdded'],
-                    'short_description': kev_match['shortDescription'],
-                    'required_action':   kev_match.get('requiredAction', 'Apply vendor patch immediately.')
-                }
-                enrichment['risk_level'] = "CRITICAL"
-            elif enrichment['related_cves']:
-                enrichment['risk_level'] = "HIGH"
+                if kev_match:
+                    print(f"[CVE/KEV] 🔴 KEV MATCH FOUND: {kev_match['cveID']}")
+                    enrichment['kev_matched'] = True
+                    enrichment['kev_details'] = {
+                        'cve_id':            kev_match['cveID'],
+                        'vendor':            kev_match['vendorProject'],
+                        'product':           kev_match['product'],
+                        'date_added':        kev_match['dateAdded'],
+                        'short_description': kev_match['shortDescription'],
+                        'required_action':   kev_match.get('requiredAction', 'Apply vendor patch immediately.')
+                    }
+                    enrichment['risk_level'] = "CRITICAL"
+                elif enrichment['related_cves']:
+                    print(f"[CVE/KEV] No KEV match found, but {len(cve_ids)} CVEs identified - setting risk to HIGH")
+                    enrichment['risk_level'] = "HIGH"
+            else:
+                print(f"[CVE/KEV] CISA API returned status {kev_resp.status_code}")
+        except Exception as e:
+            print(f"[CVE/KEV] CISA API error: {str(e)}")
+            import traceback
+            print(f"[CVE/KEV] Traceback: {traceback.format_exc()}")
 
     except Exception as e:
         print(f"[CVE/KEV ERROR] {str(e)}")

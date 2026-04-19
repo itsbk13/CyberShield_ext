@@ -8,8 +8,8 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
+DEBUG = config('DEBUG', default='False') == 'True'  # Set to False in production
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -76,8 +76,15 @@ USE_TZ = True
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# CORS settings
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS settings - Restrict to specific origins only
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://127.0.0.1:8000').split(',')
 CORS_ALLOW_METHODS = ["GET", "POST", "OPTIONS"]
 CORS_ALLOW_HEADERS = ["Content-Type", "Accept"]
 CORS_ALLOW_CREDENTIALS = False
+CORS_EXPOSE_HEADERS = ["Content-Type"]
+
+# Security settings
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default='False') == 'True'
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default='False') == 'True'
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default='False') == 'True'
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='http://localhost:3000').split(',')

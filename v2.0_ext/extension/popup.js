@@ -1,9 +1,23 @@
-// Mistral AI API Key
+// Mistral AI API Key - with Bearer token authentication
 const MISTRAL_API_KEY = (async () => {
   try {
-    const response = await fetch("http://127.0.0.1:8000/cb/analyze/api/get-mistral-key/");
-    if (!response.ok) throw new Error("Failed to fetch API key");
-    return await response.text();
+    // Use a simple Bearer token (in production, this should come from secure storage)
+    const bearerToken = "cybershield_extension_token";
+    const response = await fetch("http://127.0.0.1:8000/cb/get_mistral_key/", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${bearerToken}`,
+        "Content-Type": "application/json"
+      }
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Unauthorized: API key endpoint requires authentication");
+      }
+      throw new Error(`Failed to fetch API key: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.key || null;
   } catch (err) {
     console.error("Error fetching Mistral API Key:", err);
     addMessage("Oops! Can't connect to the AI server right now. Try again later.", "bot");
@@ -291,12 +305,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const forceFraudDetection = textToSend.startsWith("@");
     const heuristicFraudDetection = needsFraudDetection(textToSend);
 
-    if ((forceFraudDetection || heuristicFraudDetection) && isAnalyseMode) {
+    if (isAnalyseMode) {
       const textForAnalysis = forceFraudDetection ? textToSend.slice(1).trim() : textToSend;
       scanningIndicator.classList.add("show");
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/cb/analyze/", {
+        const res = await fetch("http://127.0.0.1:8000/cb/analyze_text/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: textForAnalysis })

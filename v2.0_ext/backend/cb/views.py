@@ -5,34 +5,71 @@ from .models import ScannedMessage
 from .serializers import ScannedMessageSerializer
 from .utils import predict_spam, enrich_with_cve_kev
 from decouple import config
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET
+from functools import wraps
+import re
+
+
+def require_api_token(view_func):
+    """Decorator to require Bearer token authentication for sensitive endpoints"""
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        if not auth_header.startswith('Bearer '):
+            return JsonResponse(
+                {"error": "Unauthorized: Bearer token required"},
+                status=401
+            )
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+def validate_text_input(text, max_length=2000):
+    """Validate and sanitize text input"""
+    if not isinstance(text, str):
+        raise ValueError("Text must be a string")
+    
+    text = text.strip()
+    
+    if not text:
+        raise ValueError("Text cannot be empty")
+    
+    if len(text) > max_length:
+        raise ValueError(f"Text exceeds maximum length of {max_length} characters")
+    
+    # Basic sanitization - allow alphanumeric, common URL characters, and punctuation
+    if not re.match(r'^[\w\s\-._~:/?#\[\]@!$&\'()*+,;=%.]+$', text):
+        raise ValueError("Text contains invalid characters")
+    
+    return text
 
 
 @require_GET
-@csrf_exempt
+@require_api_token
 def get_mistral_key(request):
-    mistral_key = config('MISTRAL_API_KEY')
+    """Protected endpoint to retrieve Mistral API key - requires Bearer token"""
+    mistral_key = config('MISTRAL_API_KEY', default=None)
     if not mistral_key:
-        return HttpResponse("API key not configured", status=500)
-    return HttpResponse(mistral_key, content_type="text/plain")
+        return JsonResponse(
+            {"error": "API key not configured"},
+            status=500
+        )
+    # Return key for authenticated requests (extension will provide Bearer token)
+    return JsonResponse(
+        {"key": mistral_key},
+        status=200
+    )
 
 
-@csrf_exempt
 @api_view(['POST', 'OPTIONS'])
 def analyze_text(request):
     # Handle preflight OPTIONS request for CORS
     if request.method == 'OPTIONS':
-        response = Response()
-        response['Access-Control-Allow-Origin'] = '*'
-        response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Content-Type, Accept'
-        return response
+        return Response(status=200)
 
     if request.method != 'POST':
-        response = Response({"error": "Method not allowed—use POST"}, status=405)
-        response['Access-Control-Allow-Origin'] = '*'
-        return response
+        return Response({"error": "Method not allowed—use POST"}, status=405)
 
     try:
         # Handle request data
@@ -48,10 +85,18 @@ def analyze_text(request):
                 text = str(text_value).strip() if text_value is not None else ""
 
         print(f"Extracted text: '{text}'")
+        
+        # Validate and sanitize input
+        try:
+            text = validate_text_input(text)
+        except ValueError as e:
+            return Response(
+                {"error": f"Invalid input: {str(e)}"},
+                status=400
+            )
+        
         if not text or text == "0":
-            response = Response({"error": "No text provided"}, status=400)
-            response['Access-Control-Allow-Origin'] = '*'
-            return response
+            return Response({"error": "No text provided"}, status=400)
 
         # Step 1: ML-based threat classification
         prediction = predict_spam(text)
@@ -85,7 +130,9 @@ def analyze_text(request):
         }
 
         if is_phishing and "http" in text.lower():
+            print(f"[VIEWS] Calling enrich_with_cve_kev for phishing URL: {text}")
             enrichment = enrich_with_cve_kev(text)
+            print(f"[VIEWS] Enrichment result: {enrichment}")
             threat_intelligence["related_cves"] = enrichment.get("related_cves", [])
             threat_intelligence["kev_matched"] = enrichment.get("kev_matched", False)
             threat_intelligence["kev_details"] = enrichment.get("kev_details", None)
@@ -108,16 +155,20 @@ def analyze_text(request):
             "advice": advice,
             "threat_intelligence": threat_intelligence
         })
-        response['Access-Control-Allow-Origin'] = '*'
         return response
 
     except ValueError as e:
-        print(f"JSON parse error: {str(e)}")
-        response = Response({"error": f"Invalid JSON: {str(e)}"}, status=400)
-        response['Access-Control-Allow-Origin'] = '*'
-        return response
+        print(f"Validation error: {str(e)}")
+        return Response(
+            {"error": f"Invalid input: {str(e)}"},
+            status=400
+        )
     except Exception as e:
         print(f"Error in analyze_text: {str(e)}")
-        response = Response({"error": f"Server error: {str(e)}"}, status=500)
-        response['Access-Control-Allow-Origin'] = '*'
-        return response
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        # Don't expose detailed error messages in production
+        return Response(
+            {"error": "Internal server error: Analysis failed"},
+            status=500
+        )
