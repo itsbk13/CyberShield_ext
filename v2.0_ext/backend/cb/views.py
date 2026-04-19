@@ -5,7 +5,7 @@ from .models import ScannedMessage
 from .serializers import ScannedMessageSerializer
 from .utils import predict_spam, enrich_with_cve_kev
 from decouple import config
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from functools import wraps
 import re
@@ -29,42 +29,32 @@ def validate_text_input(text, max_length=2000):
     """Validate and sanitize text input"""
     if not isinstance(text, str):
         raise ValueError("Text must be a string")
-    
+
     text = text.strip()
-    
+
     if not text:
         raise ValueError("Text cannot be empty")
-    
+
     if len(text) > max_length:
         raise ValueError(f"Text exceeds maximum length of {max_length} characters")
-    
-    # Basic sanitization - allow alphanumeric, common URL characters, and punctuation
+
     if not re.match(r'^[\w\s\-._~:/?#\[\]@!$&\'()*+,;=%.]+$', text):
         raise ValueError("Text contains invalid characters")
-    
+
     return text
 
 
 @require_GET
 @require_api_token
-def get_mistral_key(request):
-    """Protected endpoint to retrieve Mistral API key - requires Bearer token"""
-    mistral_key = config('MISTRAL_API_KEY', default=None)
-    if not mistral_key:
-        return JsonResponse(
-            {"error": "API key not configured"},
-            status=500
-        )
-    # Return key for authenticated requests (extension will provide Bearer token)
-    return JsonResponse(
-        {"key": mistral_key},
-        status=200
-    )
+def get_gemini_key(request):
+    gemini_key = config('GEMINI_API_KEY', default=None)
+    if not gemini_key:
+        return JsonResponse({"error": "Gemini API key not configured"}, status=500)
+    return JsonResponse({"key": gemini_key}, status=200)
 
 
 @api_view(['POST', 'OPTIONS'])
 def analyze_text(request):
-    # Handle preflight OPTIONS request for CORS
     if request.method == 'OPTIONS':
         return Response(status=200)
 
@@ -72,9 +62,9 @@ def analyze_text(request):
         return Response({"error": "Method not allowed—use POST"}, status=405)
 
     try:
-        # Handle request data
         data = request.data
         print(f"Request data: {data}")
+
         if isinstance(data, str):
             text = data.strip()
         else:
@@ -85,8 +75,7 @@ def analyze_text(request):
                 text = str(text_value).strip() if text_value is not None else ""
 
         print(f"Extracted text: '{text}'")
-        
-        # Validate and sanitize input
+
         try:
             text = validate_text_input(text)
         except ValueError as e:
@@ -94,15 +83,15 @@ def analyze_text(request):
                 {"error": f"Invalid input: {str(e)}"},
                 status=400
             )
-        
+
         if not text or text == "0":
             return Response({"error": "No text provided"}, status=400)
 
-        # Step 1: ML-based threat classification
-        prediction = predict_spam(text)
+        # ── Step 1: ML-based threat classification ────────────────────────
+        prediction  = predict_spam(text)
         is_phishing = prediction['is_phishing']
-        is_fraud = prediction['is_fraud']
-        is_spam = is_phishing or is_fraud
+        is_fraud    = prediction['is_fraud']
+        is_spam     = is_phishing or is_fraud
 
         # Save to DB
         message = ScannedMessage.objects.create(
@@ -110,123 +99,99 @@ def analyze_text(request):
             is_phishing=is_phishing,
             is_fraud=is_fraud
         )
-        ScannedMessageSerializer(message)  # Serialize for logging
+        ScannedMessageSerializer(message)
 
-        # Format base response
+        # Base response
         probability = prediction.get('phishing_prob', 0.0) if is_phishing else prediction.get('fraud_prob', 0.0)
-        alert = "🚨 Phishing Alert!" if is_phishing else "🚨 Fraud Alert!" if is_fraud else "✅ Safe"
+        alert  = "🚨 Phishing Alert!" if is_phishing else "🚨 Fraud Alert!" if is_fraud else "✅ Safe"
         advice = "Avoid interacting with this message." if is_spam else "No threats detected."
 
         response_data = {
-            "alert": alert,
+            "alert":       alert,
             "probability": float(probability),
-            "advice": advice
+            "advice":      advice
         }
 
-        # SCENARIO 1: Safe email - NO threat_intelligence object at all
+        # ── Step 2: Safe — return early, no threat_intelligence ───────────
         if not is_spam:
-            print("[VIEWS] Safe email detected - no threat_intelligence")
+            print("[VIEWS] Safe input detected — no threat_intelligence")
             return Response(response_data)
 
-        # SCENARIO 2-4: Phishing/Fraud detected - Add threat_intelligence with color-coded panel
+        # ── Step 3: Threat detected — run CVE/KEV enrichment ─────────────
         threat_intelligence = {
             "related_cves": [],
-            "kev_matched": False,
-            "kev_details": None,
-            "risk_level": "RED",
-            "panel_color": "green",  # Default: green for generic phishing
+            "kev_matched":  False,
+            "kev_details":  None,
+            "risk_level":   "MEDIUM",
+            "panel_color":  "green",
             "analyst_note": ""
         }
 
-        if is_phishing and "http" in text.lower():
-            print(f"[VIEWS] Calling enrich_with_cve_kev for phishing URL: {text}")
-            enrichment = enrich_with_cve_kev(text)
-            print(f"[VIEWS] Enrichment result: {enrichment}")
-            
-            related_cves = enrichment.get("related_cves", [])
-            kev_matched = enrichment.get("kev_matched", False)
-            threat_intelligence["related_cves"] = related_cves
-            threat_intelligence["kev_matched"] = kev_matched
+        print(f"[VIEWS] Threat detected — calling enrich_with_cve_kev for: {text}")
+        enrichment = enrich_with_cve_kev(text)
+        print(f"[VIEWS] Enrichment result: {enrichment}")
 
-            # Determine panel color and content based on CVE/KEV status
-            if kev_matched:
-                # SCENARIO 4: RED panel - CVE + KEV match (actively exploited)
-                threat_intelligence["panel_color"] = "red"
-                threat_intelligence["risk_level"] = "CRITICAL"
-                threat_intelligence["kev_details"] = enrichment.get("kev_details", None)
-                threat_intelligence["analyst_note"] = (
-                    "🚨 KEV MATCH CRITICAL: This vulnerability is actively exploited in the wild. "
-                    "Immediate patching required. Do not delay remediation."
-                )
-                print("[VIEWS] Panel color: RED (KEV match found)")
+        related_cves = enrichment.get("related_cves", [])
+        kev_matched  = enrichment.get("kev_matched", False)
 
-            elif related_cves:
-                # SCENARIO 3: ORANGE panel - CVE found but NO KEV match
-                threat_intelligence["panel_color"] = "orange"
-                threat_intelligence["risk_level"] = "HIGH"
-                
-                # Find highest CVSS score for warning
-                highest_cvss = max([cve.get('cvss_score', 0) for cve in related_cves], default=0)
-                cve_count = len(related_cves)
-                
-                threat_intelligence["kev_details"] = {
-                    "status": "CVE_FOUND_NO_KEV",
-                    "message": f"Found {cve_count} related CVE(s) with highest CVSS {highest_cvss}",
-                    "cve_details": f"These CVEs are NOT in the CISA Known Exploited Vulnerabilities catalog",
-                    "recommendation": "Apply patches based on CVE risk assessment. Monitor for exploit activity.",
-                    "highest_cvss": highest_cvss,
-                    "cve_count": cve_count
-                }
-                threat_intelligence["analyst_note"] = (
-                    f"⚠️ WARNING: {cve_count} CVE(s) detected but NOT actively exploited. "
-                    f"Highest CVSS: {highest_cvss}. Review and patch according to risk tolerance."
-                )
-                print("[VIEWS] Panel color: ORANGE (CVE found, no KEV match)")
+        threat_intelligence["related_cves"] = related_cves
+        threat_intelligence["kev_matched"]  = kev_matched
 
-            else:
-                # SCENARIO 2: GREEN panel - No CVE, no KEV (generic phishing)
-                threat_intelligence["panel_color"] = "green"
-                threat_intelligence["risk_level"] = "MEDIUM"
-                threat_intelligence["kev_details"] = {
-                    "status": "NO_KEV_MATCH",
-                    "message": "This threat pattern is not found in CISA Known Exploited Vulnerabilities (KEV) catalog",
-                    "recommendation": "Monitor and apply available patches based on CVE risk assessment"
-                }
-                threat_intelligence["analyst_note"] = (
-                    "No known exploits detected. This is a generic phishing URL with lower risk profile."
-                )
-                print("[VIEWS] Panel color: GREEN (generic phishing, no CVE)")
+        if kev_matched:
+            # 🔴 RED — CVE found AND on CISA KEV (actively exploited)
+            threat_intelligence["panel_color"]  = "red"
+            threat_intelligence["risk_level"]   = "CRITICAL"
+            threat_intelligence["kev_details"]  = enrichment.get("kev_details")
+            threat_intelligence["analyst_note"] = (
+                "🚨 KEV MATCH CRITICAL: This vulnerability is actively exploited in the wild. "
+                "Immediate patching required. Do not delay remediation."
+            )
+            print("[VIEWS] Panel color: RED (KEV match found)")
+
+        elif related_cves:
+            # 🟠 ORANGE — CVEs found but NOT on KEV
+            highest_cvss = max([c.get('cvss_score') or 0 for c in related_cves], default=0)
+            cve_count    = len(related_cves)
+
+            threat_intelligence["panel_color"]  = "orange"
+            threat_intelligence["risk_level"]   = "HIGH"
+            threat_intelligence["kev_details"]  = {
+                "status":          "CVE_FOUND_NO_KEV",
+                "message":         f"Found {cve_count} related CVE(s) with highest CVSS {highest_cvss}",
+                "cve_details":     "These CVEs are NOT in the CISA Known Exploited Vulnerabilities catalog",
+                "recommendation":  "Apply patches based on CVE risk assessment. Monitor for exploit activity.",
+                "highest_cvss":    highest_cvss,
+                "cve_count":       cve_count
+            }
+            threat_intelligence["analyst_note"] = (
+                f"⚠️ WARNING: {cve_count} CVE(s) detected but NOT actively exploited. "
+                f"Highest CVSS: {highest_cvss}. Review and patch according to risk tolerance."
+            )
+            print("[VIEWS] Panel color: ORANGE (CVE found, no KEV match)")
 
         else:
-            # Phishing detected but no URL - use GREEN panel
-            threat_intelligence["panel_color"] = "green"
-            threat_intelligence["risk_level"] = "MEDIUM"
-            threat_intelligence["kev_details"] = {
-                "status": "NO_KEV_MATCH",
-                "message": "This threat pattern is not found in CISA Known Exploited Vulnerabilities (KEV) catalog",
+            # 🟢 GREEN — No CVE, no KEV (generic phishing/fraud)
+            threat_intelligence["panel_color"]  = "green"
+            threat_intelligence["risk_level"]   = "MEDIUM"
+            threat_intelligence["kev_details"]  = {
+                "status":         "NO_KEV_MATCH",
+                "message":        "No CVEs found in NVD for this threat pattern",
                 "recommendation": "Monitor and apply available patches based on CVE risk assessment"
             }
             threat_intelligence["analyst_note"] = (
-                "Phishing/Fraud detected but no URL pattern found. Generic threat assessment applied."
+                "No known CVEs or active exploits detected. Generic threat with lower risk profile."
             )
-            print("[VIEWS] Panel color: GREEN (phishing without URL)")
+            print("[VIEWS] Panel color: GREEN (no CVE match)")
 
         response_data["threat_intelligence"] = threat_intelligence
-        response = Response(response_data)
-        return response
+        return Response(response_data)
 
     except ValueError as e:
         print(f"Validation error: {str(e)}")
-        return Response(
-            {"error": f"Invalid input: {str(e)}"},
-            status=400
-        )
+        return Response({"error": f"Invalid input: {str(e)}"}, status=400)
+
     except Exception as e:
         print(f"Error in analyze_text: {str(e)}")
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
-        # Don't expose detailed error messages in production
-        return Response(
-            {"error": "Internal server error: Analysis failed"},
-            status=500
-        )
+        return Response({"error": "Internal server error: Analysis failed"}, status=500)

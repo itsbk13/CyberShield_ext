@@ -1,26 +1,18 @@
-// Mistral AI API Key - with Bearer token authentication
-const MISTRAL_API_KEY = (async () => {
+// Gemini API key fetched from backend
+const GEMINI_API_KEY = (async () => {
   try {
-    // Use a simple Bearer token (in production, this should come from secure storage)
-    const bearerToken = "cybershield_extension_token";
-    const response = await fetch("http://127.0.0.1:8000/cb/get_mistral_key/", {
+    const response = await fetch("http://127.0.0.1:8000/cb/get_gemini_key/", {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${bearerToken}`,
+        "Authorization": "Bearer cybershield_extension_token",
         "Content-Type": "application/json"
       }
     });
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error("Unauthorized: API key endpoint requires authentication");
-      }
-      throw new Error(`Failed to fetch API key: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`Failed: ${response.status}`);
     const data = await response.json();
     return data.key || null;
   } catch (err) {
-    console.error("Error fetching Mistral API Key:", err);
-    addMessage("Oops! Can't connect to the AI server right now. Try again later.", "bot");
+    console.error("Gemini key fetch error:", err);
     return null;
   }
 })();
@@ -74,42 +66,83 @@ async function translateText(text, sourceLang, targetLang) {
   }
 }
 
-// Call Mistral AI
-async function chatWithMistral(messages) {
-  if (!await MISTRAL_API_KEY) return "AI service unavailable.";
+// Chat with Gemini 2.5 Flash
+async function chatWithGemini(messages) {
+  const key = await GEMINI_API_KEY;
+  if (!key) return "AI service unavailable.";
+
   try {
-    const requestBody = { model: "mistral-medium", messages, max_tokens: 150 };
-    const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${await MISTRAL_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody)
-    });
-    const responseText = await response.text();
-    if (!response.ok) throw new Error(`Mistral AI request failed: ${response.status} - ${responseText}`);
-    const data = JSON.parse(responseText);
-    return data.choices[0].message.content;
+    const contents = messages
+      .filter(m => m.role !== "system")
+      .map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }]
+      }));
+
+    const systemMsg = messages.find(m => m.role === "system");
+
+    const requestBody = {
+      ...(systemMsg && {
+        system_instruction: { parts: [{ text: systemMsg.content }] }
+      }),
+      contents: contents,
+      generationConfig: {
+        maxOutputTokens: 200,
+        temperature: 0.7
+      }
+    };
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody)
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Gemini error: ${response.status} - ${err}`);
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
+
   } catch (err) {
-    console.error("Mistral AI error:", err);
+    console.error("Gemini error:", err);
     return "Sorry, I'm having trouble chatting right now!";
   }
 }
 
-// Refine fraud detection via Mistral
+// Refine fraud detection via Gemini
 async function refineFraudDetection(text, modelPrediction) {
   const messages = [
-    { role: "system", content: "You are an AI assistant helping to refine fraud detection accuracy. Given a message and a model prediction, provide a refined assessment of whether the message is phishing, fraud, or safe, and adjust the probability if needed. Respond in the format: 'Refined Prediction: <type> with probability <probability>%'" },
-    { role: "user", content: `Message: "${text}"\nModel Prediction: ${modelPrediction.is_phishing ? "Phishing" : modelPrediction.is_fraud ? "Fraud" : "Safe"} with probability ${modelPrediction.probability || 50}%\nRefine this prediction and probability.` }
+    {
+      role: "system",
+      content: "You are an AI assistant helping to refine fraud detection accuracy. Given a message and a model prediction, provide a refined assessment of whether the message is phishing, fraud, or safe, and adjust the probability if needed. Respond in the format: 'Refined Prediction: <type> with probability <probability>%'"
+    },
+    {
+      role: "user",
+      content: `Message: "${text}"\nModel Prediction: ${modelPrediction.is_phishing ? "Phishing" : modelPrediction.is_fraud ? "Fraud" : "Safe"} with probability ${modelPrediction.probability || 50}%\nRefine this prediction and probability.`
+    }
   ];
-  return await chatWithMistral(messages);
+  return await chatWithGemini(messages);
 }
 
 // Rephrase response conversationally
 async function redefineResponse(response) {
   const messages = [
-    { role: "system", content: "You are a friendly AI assistant. Rephrase the following response in a casual, conversational tone like you're chatting with a friend." },
-    { role: "user", content: `Rephrase this: "${response}"` }
+    {
+      role: "system",
+      content: "You are a friendly AI assistant. Rephrase the following response in a casual, conversational tone like you're chatting with a friend."
+    },
+    {
+      role: "user",
+      content: `Rephrase this: "${response}"`
+    }
   ];
-  return await chatWithMistral(messages);
+  return await chatWithGemini(messages);
 }
 
 // Classify if input needs fraud detection
@@ -122,12 +155,10 @@ function needsFraudDetection(text) {
 }
 
 // Update threat level badge in header
-// Now also respects risk_level from backend (KEV = CRITICAL overrides ML probability)
 function updateThreatLevel(probability, riskLevel) {
   const threatLevelDiv = document.getElementById("threatLevel");
   let threatClass = "safe";
 
-  // KEV CRITICAL overrides everything
   if (riskLevel === "CRITICAL") {
     threatClass = "high";
   } else if (riskLevel === "HIGH" || probability >= 67) {
@@ -142,7 +173,7 @@ function updateThreatLevel(probability, riskLevel) {
   document.getElementById("chatContainer").className = `chat-container threat-${threatClass}`;
 }
 
-// Render the Threat Intelligence Panel with CVE + KEV data
+// Render Threat Intelligence Panel with CVE + KEV data
 function renderThreatIntelPanel(ti) {
   const panel = document.getElementById("threatIntelPanel");
   const kevBadge = document.getElementById("kevBadge");
@@ -152,7 +183,6 @@ function renderThreatIntelPanel(ti) {
   const title = document.getElementById("threatIntelTitle");
   const header = document.getElementById("threatIntelHeader");
 
-  // Reset
   kevBadge.style.display = "none";
   kevDetails.innerHTML = "";
   cveList.innerHTML = "";
@@ -163,16 +193,13 @@ function renderThreatIntelPanel(ti) {
     return;
   }
 
-  // Show panel
   panel.style.display = "block";
 
-  // Set header color based on risk
   if (ti.kev_matched) {
     header.style.background = "linear-gradient(90deg, #ff2244, #cc0022)";
     title.textContent = "⚠ THREAT INTELLIGENCE — KEV MATCH";
     kevBadge.style.display = "block";
 
-    // KEV details card
     const kd = ti.kev_details;
     if (kd) {
       kevDetails.innerHTML = `
@@ -189,7 +216,6 @@ function renderThreatIntelPanel(ti) {
     title.textContent = "⚠ THREAT INTELLIGENCE — CVEs FOUND";
   }
 
-  // CVE list
   if (ti.related_cves && ti.related_cves.length > 0) {
     const cvesHtml = ti.related_cves.map(cve => `
       <div class="cve-item">
@@ -201,12 +227,10 @@ function renderThreatIntelPanel(ti) {
     cveList.innerHTML = `<div class="cve-section-title">Related CVEs</div>${cvesHtml}`;
   }
 
-  // Analyst note
   if (ti.analyst_note) {
     analystNote.innerHTML = `<div class="analyst-note-text">🔍 ${ti.analyst_note}</div>`;
   }
 
-  // Toggle collapse on header click
   const toggle = document.getElementById("threatIntelToggle");
   const body = document.getElementById("threatIntelBody");
   header.onclick = () => {
@@ -303,7 +327,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     conversationHistory.push({ role: "user", content: textToSend });
     const forceFraudDetection = textToSend.startsWith("@");
-    const heuristicFraudDetection = needsFraudDetection(textToSend);
 
     if (isAnalyseMode) {
       const textForAnalysis = forceFraudDetection ? textToSend.slice(1).trim() : textToSend;
@@ -320,10 +343,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
         console.log("Response from Django:", data);
 
-        // Extract threat intelligence from response
         const ti = data.threat_intelligence || {};
 
-        // Build KEV context string for Mistral prompt
         let kevContext = "";
         if (ti.kev_matched && ti.kev_details) {
           kevContext = `CRITICAL: KEV MATCH detected. CVE ${ti.kev_details.cve_id} affects ${ti.kev_details.vendor} ${ti.kev_details.product} and is ACTIVELY EXPLOITED in the wild as per CISA KEV list. Required action: ${ti.kev_details.required_action}`;
@@ -331,7 +352,6 @@ document.addEventListener("DOMContentLoaded", () => {
           kevContext = `Related CVEs found: ${ti.related_cves.map(c => `${c.id} (CVSS: ${c.cvss_score || 'N/A'})`).join(", ")}. Review and apply patches based on CVSS severity.`;
         }
 
-        // Refine prediction via Mistral
         const refinedPrediction = await refineFraudDetection(textForAnalysis, data);
         let refinedType = "LOW RISK";
         let refinedProbability = data.probability || 50;
@@ -341,32 +361,28 @@ document.addEventListener("DOMContentLoaded", () => {
           refinedProbability = parseInt(predictionMatch[2]);
         }
 
-        // Update threat level — KEV risk_level takes priority over ML probability
         updateThreatLevel(refinedProbability, ti.risk_level);
-
-        // Render threat intelligence panel
         renderThreatIntelPanel(ti);
 
-        // Build result string including KEV context for Mistral
         const result = refinedType.includes("PHISHING") || refinedType.includes("FRAUD")
           ? `🚨 Potential ${refinedType} detected with ${refinedProbability}% probability! ${data.advice || "Be careful!"}${kevContext ? " " + kevContext : ""}`
           : `No immediate threats detected (probability: ${refinedProbability}%). ${data.advice || "Stay safe!"}${kevContext ? " Note: " + kevContext : ""}`;
 
         conversationHistory.push({ role: "system", content: `Fraud detection result: ${result}` });
-        let mistralResponse = await chatWithMistral(conversationHistory);
-        mistralResponse = await redefineResponse(mistralResponse);
-        await addMessage(mistralResponse, "bot");
+        let geminiResponse = await chatWithGemini(conversationHistory);
+        geminiResponse = await redefineResponse(geminiResponse);
+        await addMessage(geminiResponse, "bot");
 
         if (currentLanguage !== "English") {
           try {
-            const translatedResponse = await translateText(mistralResponse, "en", currentLanguage);
+            const translatedResponse = await translateText(geminiResponse, "en", currentLanguage);
             await addMessage(translatedResponse, "bot");
           } catch (err) {
             await addMessage(`Translation failed: ${err.message}`, "bot");
           }
         }
 
-        conversationHistory.push({ role: "assistant", content: mistralResponse });
+        conversationHistory.push({ role: "assistant", content: geminiResponse });
       } catch (err) {
         console.error("Fetch error:", err);
         await addMessage(`Fetch failed: ${err.message}`, "bot");
@@ -374,24 +390,23 @@ document.addEventListener("DOMContentLoaded", () => {
         scanningIndicator.classList.remove("show");
       }
     } else {
-      // No threat detection needed — hide intel panel and reset
       updateThreatLevel(0, "LOW");
       renderThreatIntelPanel(null);
 
-      let mistralResponse = await chatWithMistral(conversationHistory);
-      mistralResponse = await redefineResponse(mistralResponse);
-      await addMessage(mistralResponse, "bot");
+      let geminiResponse = await chatWithGemini(conversationHistory);
+      geminiResponse = await redefineResponse(geminiResponse);
+      await addMessage(geminiResponse, "bot");
 
       if (currentLanguage !== "English") {
         try {
-          const translatedResponse = await translateText(mistralResponse, "en", currentLanguage);
+          const translatedResponse = await translateText(geminiResponse, "en", currentLanguage);
           await addMessage(translatedResponse, "bot");
         } catch (err) {
           await addMessage(`Translation failed: ${err.message}`, "bot");
         }
       }
 
-      conversationHistory.push({ role: "assistant", content: mistralResponse });
+      conversationHistory.push({ role: "assistant", content: geminiResponse });
     }
   }
 
