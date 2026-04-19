@@ -107,7 +107,7 @@ Browser Extension (popup.js)
         ▼
 Django REST Backend (views.py)
         │
-        ├── ML Model (joblib)  ←── TF-IDF + Logistic Regression
+        ├── ML Model (joblib)  ←── TF-IDF + SGD (Logistic Regression)
         │
         └── enrich_with_cve_kev()
                 │
@@ -244,7 +244,7 @@ CyberShield_ext/
 | Extension | Chrome MV3, Vanilla JS |
 | AI / Chat | Google Gemini 3.1 Flash (`gemini-3.1-flash-lite-preview`) |
 | Backend | Django 5.2.6, Python 3.13.1 |
-| ML Model | Scikit-learn (TF-IDF + Logistic Regression) |
+| ML Model | Scikit-learn (TF-IDF + SGDClassifier) |
 | CVE Data | NIST NVD API v2.0 |
 | KEV Data | CISA Known Exploited Vulnerabilities Feed |
 | Translation | Google Translate (free API) |
