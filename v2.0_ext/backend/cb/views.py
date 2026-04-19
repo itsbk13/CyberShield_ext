@@ -135,19 +135,32 @@ def analyze_text(request):
             print(f"[VIEWS] Enrichment result: {enrichment}")
             threat_intelligence["related_cves"] = enrichment.get("related_cves", [])
             threat_intelligence["kev_matched"] = enrichment.get("kev_matched", False)
-            threat_intelligence["kev_details"] = enrichment.get("kev_details", None)
             threat_intelligence["risk_level"] = enrichment.get("risk_level", "LOW")
 
             if enrichment.get("kev_matched"):
+                # KEV MATCH FOUND - Include full kev_details panel
+                threat_intelligence["kev_details"] = enrichment.get("kev_details", None)
                 threat_intelligence["analyst_note"] = (
-                    "KEV MATCH: This vulnerability is actively exploited in the wild. "
+                    "🚨 KEV MATCH CRITICAL: This vulnerability is actively exploited in the wild. "
                     "Immediate patching required. Do not delay remediation."
                 )
-            elif enrichment.get("related_cves"):
-                threat_intelligence["analyst_note"] = (
-                    "Related CVEs found. Review CVSS scores and apply patches "
-                    "according to your organization's risk tolerance."
-                )
+            else:
+                # NO KEV MATCH - Show message indicating no match in KEV catalog
+                threat_intelligence["kev_details"] = {
+                    "status": "NO_KEV_MATCH",
+                    "message": "This threat pattern is not found in CISA Known Exploited Vulnerabilities (KEV) catalog",
+                    "recommendation": "Monitor and apply available patches based on CVE risk assessment"
+                }
+                
+                if enrichment.get("related_cves"):
+                    threat_intelligence["analyst_note"] = (
+                        "Related CVEs found but NOT in KEV catalog. Review CVSS scores and apply patches "
+                        "according to your organization's risk tolerance."
+                    )
+                else:
+                    threat_intelligence["analyst_note"] = (
+                        "No known exploits detected. This is a generic phishing URL with lower risk profile."
+                    )
 
         response = Response({
             "alert": alert,
