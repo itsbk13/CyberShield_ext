@@ -117,15 +117,24 @@ def analyze_text(request):
         alert = "🚨 Phishing Alert!" if is_phishing else "🚨 Fraud Alert!" if is_fraud else "✅ Safe"
         advice = "Avoid interacting with this message." if is_spam else "No threats detected."
 
-        # Step 2: CVE/KEV threat intelligence enrichment (only for phishing URLs)
-        # This layer maps detected phishing URLs to known CVEs and checks
-        # the CISA KEV list to identify actively exploited vulnerabilities.
-        # Designed for SOC analysts performing phishing triage.
+        response_data = {
+            "alert": alert,
+            "probability": float(probability),
+            "advice": advice
+        }
+
+        # SCENARIO 1: Safe email - NO threat_intelligence object at all
+        if not is_spam:
+            print("[VIEWS] Safe email detected - no threat_intelligence")
+            return Response(response_data)
+
+        # SCENARIO 2-4: Phishing/Fraud detected - Add threat_intelligence with color-coded panel
         threat_intelligence = {
             "related_cves": [],
             "kev_matched": False,
             "kev_details": None,
-            "risk_level": "LOW",
+            "risk_level": "RED",
+            "panel_color": "green",  # Default: green for generic phishing
             "analyst_note": ""
         }
 
@@ -133,41 +142,77 @@ def analyze_text(request):
             print(f"[VIEWS] Calling enrich_with_cve_kev for phishing URL: {text}")
             enrichment = enrich_with_cve_kev(text)
             print(f"[VIEWS] Enrichment result: {enrichment}")
-            threat_intelligence["related_cves"] = enrichment.get("related_cves", [])
-            threat_intelligence["kev_matched"] = enrichment.get("kev_matched", False)
-            threat_intelligence["risk_level"] = enrichment.get("risk_level", "LOW")
+            
+            related_cves = enrichment.get("related_cves", [])
+            kev_matched = enrichment.get("kev_matched", False)
+            threat_intelligence["related_cves"] = related_cves
+            threat_intelligence["kev_matched"] = kev_matched
 
-            if enrichment.get("kev_matched"):
-                # KEV MATCH FOUND - Include full kev_details panel
+            # Determine panel color and content based on CVE/KEV status
+            if kev_matched:
+                # SCENARIO 4: RED panel - CVE + KEV match (actively exploited)
+                threat_intelligence["panel_color"] = "red"
+                threat_intelligence["risk_level"] = "CRITICAL"
                 threat_intelligence["kev_details"] = enrichment.get("kev_details", None)
                 threat_intelligence["analyst_note"] = (
                     "🚨 KEV MATCH CRITICAL: This vulnerability is actively exploited in the wild. "
                     "Immediate patching required. Do not delay remediation."
                 )
+                print("[VIEWS] Panel color: RED (KEV match found)")
+
+            elif related_cves:
+                # SCENARIO 3: ORANGE panel - CVE found but NO KEV match
+                threat_intelligence["panel_color"] = "orange"
+                threat_intelligence["risk_level"] = "HIGH"
+                
+                # Find highest CVSS score for warning
+                highest_cvss = max([cve.get('cvss_score', 0) for cve in related_cves], default=0)
+                cve_count = len(related_cves)
+                
+                threat_intelligence["kev_details"] = {
+                    "status": "CVE_FOUND_NO_KEV",
+                    "message": f"Found {cve_count} related CVE(s) with highest CVSS {highest_cvss}",
+                    "cve_details": f"These CVEs are NOT in the CISA Known Exploited Vulnerabilities catalog",
+                    "recommendation": "Apply patches based on CVE risk assessment. Monitor for exploit activity.",
+                    "highest_cvss": highest_cvss,
+                    "cve_count": cve_count
+                }
+                threat_intelligence["analyst_note"] = (
+                    f"⚠️ WARNING: {cve_count} CVE(s) detected but NOT actively exploited. "
+                    f"Highest CVSS: {highest_cvss}. Review and patch according to risk tolerance."
+                )
+                print("[VIEWS] Panel color: ORANGE (CVE found, no KEV match)")
+
             else:
-                # NO KEV MATCH - Show message indicating no match in KEV catalog
+                # SCENARIO 2: GREEN panel - No CVE, no KEV (generic phishing)
+                threat_intelligence["panel_color"] = "green"
+                threat_intelligence["risk_level"] = "MEDIUM"
                 threat_intelligence["kev_details"] = {
                     "status": "NO_KEV_MATCH",
                     "message": "This threat pattern is not found in CISA Known Exploited Vulnerabilities (KEV) catalog",
                     "recommendation": "Monitor and apply available patches based on CVE risk assessment"
                 }
-                
-                if enrichment.get("related_cves"):
-                    threat_intelligence["analyst_note"] = (
-                        "Related CVEs found but NOT in KEV catalog. Review CVSS scores and apply patches "
-                        "according to your organization's risk tolerance."
-                    )
-                else:
-                    threat_intelligence["analyst_note"] = (
-                        "No known exploits detected. This is a generic phishing URL with lower risk profile."
-                    )
+                threat_intelligence["analyst_note"] = (
+                    "No known exploits detected. This is a generic phishing URL with lower risk profile."
+                )
+                print("[VIEWS] Panel color: GREEN (generic phishing, no CVE)")
 
-        response = Response({
-            "alert": alert,
-            "probability": float(probability),
-            "advice": advice,
-            "threat_intelligence": threat_intelligence
-        })
+        else:
+            # Phishing detected but no URL - use GREEN panel
+            threat_intelligence["panel_color"] = "green"
+            threat_intelligence["risk_level"] = "MEDIUM"
+            threat_intelligence["kev_details"] = {
+                "status": "NO_KEV_MATCH",
+                "message": "This threat pattern is not found in CISA Known Exploited Vulnerabilities (KEV) catalog",
+                "recommendation": "Monitor and apply available patches based on CVE risk assessment"
+            }
+            threat_intelligence["analyst_note"] = (
+                "Phishing/Fraud detected but no URL pattern found. Generic threat assessment applied."
+            )
+            print("[VIEWS] Panel color: GREEN (phishing without URL)")
+
+        response_data["threat_intelligence"] = threat_intelligence
+        response = Response(response_data)
         return response
 
     except ValueError as e:
