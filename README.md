@@ -24,11 +24,11 @@
 - [VENDOR_MAP Reference](#-vendor_map-reference)
 - [Repository Structure](#-repository-structure)
 - [Tech Stack](#-tech-stack)
-- [Setup & Installation](#-setup--installation)
+- [Setup & Installation](https://github.com/itsbk13/CyberShield_ext/blob/main/CONTRIBUTING.md)
 - [API Endpoints](#-api-endpoints)
 - [Threat Risk Levels](#-threat-risk-levels)
 - [Extension Features](#-extension-features)
-- [Contributing](#-contributing)
+- [Contributing](https://github.com/itsbk13/CyberShield_ext/blob/main/CONTRIBUTING.md)
 - [License](#-license)
 
 ---
